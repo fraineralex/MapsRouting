@@ -1,7 +1,62 @@
+from lxml import etree
 from collections import defaultdict
 from queue import PriorityQueue
 from sre_constants import FAILURE
 
+#Sección que extra los datos del documento "santo_domingo.osm"
+with open("santo_domingo.osm") as f:
+  xml_str = f.read()
+
+xml_str = xml_str.encode('UTF-8')
+
+
+class Node():
+  
+  def __init__(self, id, lat, lon, tags : dict):
+
+    self.id = id,
+    self.lat = lat,
+    self.lon = lon,
+    self.tags = tags
+
+  def __str__(self):
+    lat = self.lat[0]
+    lon = self.lon[0]
+    id = self.id[0]
+    return f'{(({lat},{lon}), {id})}'
+
+  def __repr__(self):
+    return str(self)
+
+root = etree.fromstring(xml_str)
+nodes = []
+
+for element in root.getchildren():
+  if element.tag != "node" : continue
+  attrib = element.attrib
+  tags_dict = {}
+  for tag in element.getchildren():
+    tags_dict[tag.attrib['k']] = tag.attrib['v']
+  node = Node(
+      attrib["id"],
+      attrib["lat"],
+      attrib["lon"],
+      tags_dict
+  )
+  nodes.append(node)
+
+
+graphs = {}
+for element in root.getchildren():
+  if element.tag != "way" : continue
+  ref = []
+  for tag in element.findall('nd'):
+    ref.append(tag.attrib['ref'])
+    graphs[element.attrib['id']] = ref
+
+
+      
+#Sección que contiene el método Uniform Cost Search y demás componentes
 class Scheme:
     def __init__(self, directed): 
         self.graph =  defaultdict(list)
@@ -71,3 +126,10 @@ def path_km(path):
   for (km, neighbor) in path:
     total_km += km
   return total_km, path[-1] [1] 
+
+
+test = city.uniform_cost_search('S', 'G')
+print('Start point:', test[0][1])
+print('Goal:', path_km(test)[1])
+print('The shortest route is:', test)
+print('Kilometers quantity:', path_km(test)[0], 'km')
